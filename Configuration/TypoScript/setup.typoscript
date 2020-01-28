@@ -1,0 +1,7 @@
+plugin.tx_solr.view {
+    templateRootPaths.100 = EXT:fbit_verbosesolr/Resources/Private/Templates/
+    partialRootPaths.100 = EXT:fbit_verbosesolr/Resources/Private/Partials/
+    layoutRootPaths.100 = EXT:fbit_verbosesolr/Resources/Private/Layouts/
+}
+
+module.tx_solr.view < plugin.tx_solr.view

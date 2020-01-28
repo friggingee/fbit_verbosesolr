@@ -1,0 +1,14 @@
+{
+    "name": "fbit/fbit-verbosesolr",
+    "type": "typo3-cms-extension",
+    "version": "0.0.1",
+    "require": {
+        "typo3/cms-core": "^9",
+        "apache-solr-for-typo3/solr": "^10"
+    },
+    "autoload": {
+        "psr-4": {
+            "FBIT\\VerboseSolr\\": "Classes"
+        }
+    }
+}
