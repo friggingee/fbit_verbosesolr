@@ -1,5 +1,6 @@
 {namespace solr=ApacheSolrForTypo3\Solr\ViewHelpers}
-{namespace gs=Itools\GezeSolr\ViewHelpers}
+{namespace fs=FBIT\VerboseSolr\ViewHelpers}
+{namespace vhs=FluidTYPO3\Vhs\ViewHelpers}
 <f:layout name="Backend/WithPageTree"/>
 
 <f:section name="Main">
@@ -7,7 +8,7 @@
         includeCssFiles="{0: '{f:uri.resource(path:\'StyleSheets/Backend/IndexQueueModule.css\', extensionName: \'solr\')}'}"
         includeRequireJsModules="{0:'TYPO3/CMS/Solr/FormModal'}"/>
 
-    <f:variable name="indexQueueData" value="{gs:indexQueueData(pageUid:'{pageUID}')}"/>
+    <f:variable name="indexQueueData" value="{fs:indexQueueData(pageUid:'{pageUID}')}"/>
 
     <h1>Index Queue</h1>
     <p class="lead">
@@ -70,11 +71,11 @@
                         padding: 5px;
                     }
 
-                    .indexqueueitems th[colspan="7"] {
+                    .indexqueueitems .index-queue-group th {
                         background: #bbbbbb;
                     }
 
-                    .indexqueueitems th[colspan="7"]:hover {
+                    .indexqueueitems .index-queue-group th:hover {
                         background: #cccccc;
                     }
 
@@ -84,6 +85,9 @@
 
                     .indexqueueitems tr:nth-child(odd):hover, .indexqueueitems tr:hover {
                         background: #f0fff0;
+                    }
+                    div[data-error-id] {
+                        display: none;
                     }
                 </style>
 
@@ -98,11 +102,12 @@
                         <th>reindex</th>
                     </tr>
                     <f:for each="{indexQueueData}" as="indexQueueDataGroupData" key="indexQueueDataGroup">
-                        <tr>
-                            <th colspan="7" style="cursor:pointer"
+                        <tr class="index-queue-group">
+                            <th colspan="6" style="cursor:pointer"
                                 onclick="if ($('.{indexQueueDataGroup}').is(':visible')) {$('.{indexQueueDataGroup}').hide();} else {$('.{indexQueueDataGroup}').show();}">
                                 {indexQueueDataGroup} ({indexQueueDataGroupData -> f:count()})
                             </th>
+                            <th><a href="#" class="reindex" data-itemid="{vhs:iterator.implode(content:'{vhs:iterator.column(subject:\'{indexQueueDataGroupData}\',columnKey:\'item_uuid\',indexKey:\'item_uuid\')}',glue:',')}">reindex</a></th>
                         </tr>
                         <f:for each="{indexQueueDataGroupData}" as="indexQueueItem">
                             <tr class="{indexQueueDataGroup}" style="display:none;">
@@ -116,7 +121,12 @@
                                         <f:else>0</f:else>
                                     </f:if>
                                 </td>
-                                <td>{indexQueueItem.errors}</td>
+                                <td>
+                                    <f:if condition="{indexQueueItem.errors}">
+                                        <a href="#" data-error-id="error_{indexQueueItem.item_uuid}">Show Error</a>
+                                        <div data-error-id="error_{indexQueueItem.item_uuid}">{indexQueueItem.errors}</div>
+                                    </f:if>
+                                </td>
                                 <td>{indexQueueItem.property_key}</td>
                                 <td>{indexQueueItem.property_value}</td>
                                 <td><a href="#" class="reindex" data-itemid="{indexQueueItem.item_uuid}">reindex</a>

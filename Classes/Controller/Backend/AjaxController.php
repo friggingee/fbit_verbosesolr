@@ -31,36 +31,48 @@ class AjaxController
     {
         $queryParams = $request->getQueryParams();
 
-        $itemUid = $queryParams['item_uid'];
-
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tx_solr_indexqueue_item');
-
-        $itemData = $queryBuilder->select('*')
-            ->from('tx_solr_indexqueue_item')
-            ->where(
-                $queryBuilder->expr()->eq('uid', $itemUid)
-            )
-            ->execute()
-            ->fetchAll()[0];
-
-        $item = GeneralUtility::makeInstance(
-            Item::class,
-            $itemData
-        );
+        $itemUids = explode(',', $queryParams['item_uid']);
 
         $siteRepository = GeneralUtility::makeInstance(SiteRepository::class);
-        $site = $siteRepository->getSiteByRootPageId($item->getRootPageUid());
 
-        $configuration = $site->getSolrConfiguration();
-        $indexingConfigurationName = $item->getIndexingConfigurationName();
+        $content = [];
 
-        $indexerClass = $configuration->getIndexQueueIndexerByConfigurationName($indexingConfigurationName);
-        $indexerConfiguration = $configuration->getIndexQueueIndexerConfigurationByConfigurationName($indexingConfigurationName);
+        foreach ($itemUids as $itemUid) {
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tx_solr_indexqueue_item');
 
-        $indexer = GeneralUtility::makeInstance($indexerClass, /** @scrutinizer ignore-type */ $indexerConfiguration);
+            $itemData = $queryBuilder->select('*')
+                ->from('tx_solr_indexqueue_item')
+                ->where(
+                    $queryBuilder->expr()->eq('uid', $itemUid)
+                )
+                ->execute()
+                ->fetchAll()[0];
 
-        $content = $indexer->index($item);
-        GeneralUtility::makeInstance(Queue::class)->updateIndexTimeByItem($item);
+            $item = GeneralUtility::makeInstance(
+                Item::class,
+                $itemData
+            );
+
+            $site = $siteRepository->getSiteByRootPageId($item->getRootPageUid());
+
+            $configuration = $site->getSolrConfiguration();
+            $indexingConfigurationName = $item->getIndexingConfigurationName();
+
+            $indexerClass = $configuration->getIndexQueueIndexerByConfigurationName($indexingConfigurationName);
+            $indexerConfiguration = $configuration->getIndexQueueIndexerConfigurationByConfigurationName($indexingConfigurationName);
+
+            $indexer = GeneralUtility::makeInstance($indexerClass, /** @scrutinizer ignore-type */ $indexerConfiguration);
+
+            try {
+                $indexingResult = $indexer->index($item);
+                GeneralUtility::makeInstance(Queue::class)->updateIndexTimeByItem($item);
+            } catch (\Exception $exception) {
+                $indexingResult = $exception->getMessage();
+                GeneralUtility::makeInstance(Queue::class)->markItemAsFailed($item, $exception->getCode() . ':' . $exception->__toString());
+            }
+
+            $content[$itemUid] = $indexingResult;
+        }
 
         $response->getBody()->write(json_encode($content));
         return $response;
